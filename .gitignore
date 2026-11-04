@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+logs/
+artifacts/
+data/frames/
+data/calibration/*.jpg
+config/vision_settings.json
+vendor/_staging/

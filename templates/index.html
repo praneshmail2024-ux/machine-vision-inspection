@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Mission Vision — Real-time industrial ring inspection and counting station powered by Orbbec Astra depth camera and OpenCV." />
+    <title>Mission Vision | Inspection Station</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=premium-2" />
+  </head>
+  <body>
+    <canvas id="particleCanvas" aria-hidden="true"></canvas>
+
+    <div class="dashboard">
+      <header class="topbar">
+        <div class="brand-cluster">
+          <button id="menuButton" class="icon-button menu-button" type="button" aria-label="Open vision settings" aria-controls="settingsDrawer" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+          <div class="brand-mark" aria-hidden="true">
+            <svg class="brand-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" /><circle class="brand-dot" cx="20" cy="20" r="3" /></svg>
+          </div>
+          <div>
+            <p class="brand-name">Mission Vision</p>
+            <p class="brand-meta">Orbbec Inspection Station</p>
+          </div>
+        </div>
+        <div class="top-status">
+          <span class="camera-label">ORBBEC ASTRA&nbsp;&nbsp;•&nbsp;&nbsp;RGB 640 × 480&nbsp;&nbsp;•&nbsp;&nbsp;30 FPS</span>
+          <span id="liveBadge" class="live-badge"><i></i>OFFLINE</span>
+        </div>
+      </header>
+
+      <main class="console-main">
+        <aside class="nav-rail" aria-label="Inspection navigation">
+          <nav class="nav-list">
+            <button class="nav-item active" type="button" data-view="live">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v11H4zM8 8l1.5-3h5L16 8M12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" /></svg></span>
+              <span>Live View</span>
+            </button>
+            <button class="nav-item" id="pipelineNavButton" type="button">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg></span>
+              <span>Dashboard</span>
+            </button>
+            <button class="nav-item" id="fovNavButton" type="button">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4 13v-2l2-1 .6-1.4-.7-2.1 1.5-1.4 2.1.7L11 5h2l1 1.8 2.1-.7 1.5 1.4-.7 2.1L19 11v2l-2.1 1.4.7 2.1-1.5 1.4-2.1-.7L13 19h-2l-1.5-1.8-2.1.7-1.5-1.4.7-2.1L4 13Z" /></svg></span>
+              <span>Settings</span>
+            </button>
+            <button class="nav-item" id="calibrationNavButton" type="button">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M12 9v6M9 12h6" /></svg></span>
+              <span>Calibration</span>
+            </button>
+            <button class="nav-item muted" type="button" aria-disabled="true">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7M9 8h2" /></svg></span>
+              <span>Logs</span>
+            </button>
+            <button class="nav-item muted" type="button" aria-disabled="true">
+              <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1" /><path d="M8 21h8M12 17v4" /></svg></span>
+              <span>System</span>
+            </button>
+          </nav>
+
+          <div class="camera-health">
+            <p><i></i>Camera Status</p>
+            <strong>Orbbec Astra</strong>
+            <span>640×480 @ 30 FPS</span>
+          </div>
+        </aside>
+
+        <section class="camera-stage" aria-label="Live camera stream">
+          <div class="camera-hud" aria-hidden="true">
+            <span>CAM 01</span>
+            <span class="hud-recording"><i></i>REC</span>
+            <span>INSPECTION AREA</span>
+          </div>
+          <img id="cameraFeed" src="/api/frame.jpg" alt="Live processed camera view" />
+          <div class="camera-overlay-corners" aria-hidden="true"></div>
+          <button id="fullscreenButton" class="fullscreen-button" type="button" aria-label="View camera fullscreen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
+          </button>
+        </section>
+
+        <aside class="inspector" aria-label="Camera controls and inspection state">
+          <section class="inspector-section controls-section">
+            <div class="section-title"><span>Controls</span><i></i></div>
+            <div class="control-stack">
+              <button id="startButton" class="primary-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5V7Z" /></svg>Start Camera
+              </button>
+              <button id="stopButton" class="control-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="8" height="8" rx="1" /></svg>Stop
+              </button>
+              <button id="calibrateButton" class="control-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>Calibrate Empty Belt
+              </button>
+              <button id="resetButton" class="control-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 7M19 4v4h-4" /></svg>Reset Count
+              </button>
+            </div>
+          </section>
+          <section class="inspector-section inspection-state">
+            <div class="section-title"><span>Inspection Area</span><i></i></div>
+            <dl>
+              <div><dt>Region</dt><dd>Active</dd></div>
+              <div><dt><b class="red-dot"></b>Counting Line</dt><dd>Verified</dd></div>
+              <div><dt>Status</dt><dd class="monitoring-pill">Monitoring</dd></div>
+            </dl>
+          </section>
+        </aside>
+      </main>
+
+      <section class="metrics" aria-label="Detection output">
+        <article class="metric metric-rings">
+          <div class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" /></svg></div>
+          <div><span>Rings in region</span><strong id="visibleCount">0</strong><small>Currently in inspection area</small></div>
+        </article>
+        <article class="metric metric-total">
+          <div class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 6 21M16 3l-2 18M3 9h18M2 15h18" /></svg></div>
+          <div><span>Total counted</span><strong id="totalCount">0</strong><small>Total rings counted</small></div>
+        </article>
+        <article class="metric metric-rate">
+          <div class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 16 5-8 5 8 7-11" /></svg></div>
+          <div><span>Processing rate</span><strong><span id="processingFps">0.0</span><em> FPS</em></strong><small>Average processing speed</small></div>
+        </article>
+        <article class="metric metric-model">
+          <div class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1" /><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3M10 10h4v4h-4z" /></svg></div>
+          <div><span>Empty-belt model</span><strong id="calibrationState">NOT SET</strong><small>Background model status</small></div>
+        </article>
+      </section>
+
+      <footer class="status-footer">
+        <p id="statusMessage" role="status">Checking camera status...</p>
+        <time id="currentTime">--:--:--</time>
+      </footer>
+    </div>
+
+    <!-- Toast notification container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <div id="drawerScrim" class="drawer-scrim" hidden></div>
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true" aria-label="Vision settings">
+      <div class="drawer-header">
+        <div><p class="eyebrow">Vision tools</p><h1>Inspection setup</h1></div>
+        <button id="closeDrawerButton" class="icon-button" type="button" aria-label="Close vision settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+      </div>
+      <div class="drawer-tabs" role="tablist" aria-label="Inspection setup sections">
+        <button id="pipelineTab" class="drawer-tab active" type="button" role="tab" aria-selected="true" aria-controls="pipelinePanel">Vision pipeline</button>
+        <button id="fovTab" class="drawer-tab" type="button" role="tab" aria-selected="false" aria-controls="fovPanel">Field of view</button>
+      </div>
+      <div class="drawer-content">
+        <section id="pipelinePanel" class="drawer-panel" role="tabpanel" aria-labelledby="pipelineTab">
+          <div class="section-heading"><div><p class="eyebrow">How the machine sees</p><h2>Six-stage pipeline</h2></div><span class="refresh-note">Live</span></div>
+          <p class="panel-copy">Input, material mask, background change, cleanup, watershed separation and accepted result.</p>
+          <div class="debug-wrap"><img id="debugFeed" src="/api/debug.jpg" alt="Six live machine-vision processing stages" /></div>
+          <div class="pipeline-legend"><span>01 Input</span><span>02 Mask</span><span>03 Change</span><span>04 Clean</span><span>05 Separate</span><span>06 Result</span></div>
+        </section>
+        <section id="fovPanel" class="drawer-panel" role="tabpanel" aria-labelledby="fovTab" hidden>
+          <div class="section-heading"><div><p class="eyebrow">Detection setup</p><h2>Field of view</h2></div></div>
+          <p class="panel-copy">Keep the cyan box on the conveyor and exclude rails, cables and surrounding equipment.</p>
+          <div class="slider-grid">
+            <label><span>Left boundary <output id="leftValue">0%</output></span><input id="left" type="range" min="0" max="90" value="0" /></label>
+            <label><span>Right boundary <output id="rightValue">62%</output></span><input id="right" type="range" min="10" max="100" value="62" /></label>
+            <label><span>Top boundary <output id="topValue">3%</output></span><input id="top" type="range" min="0" max="90" value="3" /></label>
+            <label><span>Bottom boundary <output id="bottomValue">97%</output></span><input id="bottom" type="range" min="10" max="100" value="97" /></label>
+            <label><span>Counting line <output id="countingLineValue">50%</output></span><input id="countingLine" type="range" min="0" max="100" value="50" /></label>
+          </div>
+          <button id="applyFovButton" class="apply-button" type="button">Apply field of view</button>
+          <p class="setting-note">Changes are sent directly to the Python detector.</p>
+        </section>
+      </div>
+    </aside>
+
+    <script src="{{ url_for('static', filename='app.js') }}?v=premium-2"></script>
+  </body>
+</html>
