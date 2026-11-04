@@ -69,3 +69,9 @@ Generated contact sheets and replay videos are written under `artifacts/` by def
 ## Source export
 
 Prepared from the existing Codex project on 4 November 2026. Private camera settings, calibration backgrounds, server logs, raw recordings, and vendor driver binaries are excluded. Camera capture requires compatible Orbbec hardware; no laptop webcam fallback is used by this version. Saved example images document prior local tests and do not establish general accuracy.
+
+## Saved demonstration
+
+![Prior local detection replay](docs/images/recorded-test-contact.jpg)
+
+[Saved test replay video](docs/recorded-test-replay.mp4). This is prior local test footage, not a live camera feed or a general accuracy benchmark.
